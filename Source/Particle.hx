@@ -48,4 +48,8 @@ class Particle extends  Sprite  // Класс частиц
         TTL--;  
         alpha *= 0.964;
     }
+    public function set_dy(value:Float)
+    {
+        dy = value;    
+    }
 }

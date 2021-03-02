@@ -23,6 +23,8 @@ class Game extends Sprite
     var gameLVL:Int; // уровень
     var collisionParticles:Array<Particle>;  //массив частиц для эффекта столкновения
     var ballParticles:Array<Particle>; // массив частиц за шаром
+    var spentBallParticles:Array<Particle>;  // массив использованных частиц за шаром
+    var spentCollisionParticles:Array<Particle>; // Массив использованных чатиц столкновений
 
     public function new(width:Int, height:Int)
     {
@@ -42,6 +44,8 @@ class Game extends Sprite
 
         collisionParticles = [];
         ballParticles = [];
+        spentBallParticles = [];
+        spentCollisionParticles = [];
 
         Lib.current.stage.addEventListener(KeyboardEvent.KEY_DOWN, onDown);
         Lib.current.stage.addEventListener(KeyboardEvent.KEY_UP, onUp);
@@ -54,6 +58,7 @@ class Game extends Sprite
     {
         if(Timer.stamp()-timeFlag >= 1.0/60.0)
             {
+                trace(spentCollisionParticles.length+"  "+collisionParticles.length);
                 if(gameLVL <= 4)
                     {
                         if(gameLevel.isCompleted())
@@ -70,29 +75,45 @@ class Game extends Sprite
                         backGroundMove();
                         checkCollisions();
                         for(i in 0...5)
-                            addBallParticle(new Particle("particle"),(Math.random()-0.5)*ball.get_radius()+ball.x, (Math.random()-0.5)*ball.get_radius()+ball.y);
+                            {
+                                if(spentBallParticles.length > 0)
+                                    {
+                                        //trace("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                                    addBallParticle(resetParticle(spentBallParticles.pop(), "ball"),(Math.random()-0.5)*ball.get_radius()+ball.x, (Math.random()-0.5)*ball.get_radius()+ball.y);
+                                    }
+                                else
+                                    addBallParticle(new Particle("particle"),(Math.random()-0.5)*ball.get_radius()+ball.x, (Math.random()-0.5)*ball.get_radius()+ball.y);
+                            }
                         if(ballParticles.length>0)
                             {
-                                for(p in ballParticles)
+                                var p = 0;
+                                while(p < ballParticles.length)
                                     {
-                                        p.update();
-                                        if(p.TTL < 0)
+                                        ballParticles[p].update();
+                                        if(ballParticles[p].TTL < 0)
                                             {
-                                                removeChild(p);
-                                                ballParticles.remove(p);
+                                                removeChild(ballParticles[p]);
+                                                spentBallParticles.push(ballParticles[p]);
+                                                ballParticles.remove(ballParticles[p]);
                                             }
+                                        else
+                                            p++;
                                     }
                             }
                         if(collisionParticles.length>0)
                             {
-                                for(p in collisionParticles)
+                                var p =0;
+                                while(p<collisionParticles.length)
                                     {
-                                        p.update();
-                                        if(p.TTL < 0)
+                                        collisionParticles[p].update();
+                                        if(collisionParticles[p].TTL < 0)
                                             {
-                                                removeChild(p);
-                                                collisionParticles.remove(p);
+                                                removeChild(collisionParticles[p]);
+                                                spentCollisionParticles.push(collisionParticles[p]);
+                                                collisionParticles.remove(collisionParticles[p]);
                                             }
+                                        else 
+                                            p++;
                                     }
                             }
 
@@ -174,7 +195,12 @@ class Game extends Sprite
                        this.removeChild(tile);
                         gameLevel.tiles.remove(tile);
                         for(i in 0...40)
-                            addCollisionParticle(new Particle("particle2"),closest.x, closest.y);
+                            {
+                                if(spentCollisionParticles.length > 0)
+                                    addCollisionParticle(resetParticle(spentCollisionParticles.pop(), "collision"),closest.x, closest.y);
+                                else
+                                    addCollisionParticle(new Particle("particle2"),closest.x, closest.y);
+                            }
                         trace(gameLevel.get_indestrucTiles()+" "+gameLevel.tiles.length);
                     }
                 return true;
@@ -253,6 +279,22 @@ class Game extends Sprite
                 p.y = y;
                 addChild(p);
             }
+    
+    public function resetParticle(p:Particle, name:String):Particle
+    {
+        if(name == "ball")
+             p.TTL = 15;
+        if(name == "collision")
+            {
+                p.TTL = 30;
+                var angle = 2.0* Math.random() * Math.PI;
+                var speed = 2.0 + 5.0* Math.random();
+                p.set_dy(speed * Math.sin(angle));
+            }
+        p.rotation = Math.random() * 360;
+        p.alpha = 1.0;
+        return p;
+    }
     public function backGroundMove()
     {
         gameLevel.backGround.x = (player.x-sizeWidth/2)* 0.25;
